@@ -1,0 +1,189 @@
+# Citations to be used for references
+# AOK Niedersachsen core
+- id: aok-nds-home
+  url: https://www.aok.de/pk/niedersachsen/
+  title: "AOK Niedersachsen – Leistungen & Services"
+  category: "nds"
+  language: "de"
+  type: "html"
+
+- id: aok-nds-hannover
+  url: https://www.aok.de/pk/niedersachsen/region/hannover/
+  title: "AOK Niedersachsen – Region Hannover"
+  category: "nds"
+  language: "de"
+  type: "html"
+
+# AOK-wide essentials
+- id: aok-landing
+  url: https://www.aok.de/pk/
+  title: "Die AOK – Start"
+  category: "aok"
+  language: "de"
+  type: "html"
+
+- id: aok-leistungen
+  url: https://www.aok.de/pk/leistungen/
+  title: "Leistungen (A–Z)"
+  category: "leistungen"
+  language: "de"
+  type: "html"
+
+- id: aok-leistungen-services
+  url: https://www.aok.de/pk/leistungen-services/
+  title: "Leistungen & Services – Überblick"
+  category: "leistungen"
+  language: "de"
+  type: "html"
+
+- id: aok-bonus
+  url: https://www.aok.de/pk/bonus-praemienprogramme/
+  title: "Bonus- & Prämienprogramme"
+  category: "bonus"
+  language: "de"
+  type: "html"
+
+# Onlineportal / App
+- id: meine-aok-overview
+  url: https://www.aok.de/pk/versichertenservice/onlineportal-meine-aok/
+  title: "Onlineportal & App „Meine AOK“"
+  category: "portal"
+  language: "de"
+  type: "html"
+
+- id: meine-aok-web
+  url: https://meine.aok.de/
+  title: "Meine AOK – Login"
+  category: "portal"
+  language: "de"
+  type: "html"
+
+# ePA (elektronische Patientenakte)
+- id: epa-overview
+  url: https://www.aok.de/pk/versichertenservice/elektronische-patientenakte/
+  title: "ePA – Überblick & Datenschutz"
+  category: "epa"
+  language: "de"
+  type: "html"
+
+- id: epa-fuer-alle
+  url: https://www.aok.de/pk/thema/epa-fuer-alle/
+  title: "ePA für alle – Infos"
+  category: "epa"
+  language: "de"
+  type: "html"
+
+# Kontakt/Service
+- id: aok-servicenummern
+  url: https://www.aok.de/pk/kontakt/servicenummern/
+  title: "Servicenummern (inkl. AOK Niedersachsen Hotline)"
+  category: "kontakt"
+  language: "de"
+  type: "html"
+
+- id: aok-postanschrift
+  url: https://www.aok.de/pk/kontakt/postanschrift/
+  title: "Postanschrift & Adressen"
+  category: "kontakt"
+  language: "de"
+  type: "html"
+
+- id: aok-vor-ort
+  url: https://www.aok.de/pk/kontakt/aok-vor-ort/
+  title: "AOK in der Nähe – Servicecenter"
+  category: "kontakt"
+  language: "de"
+  type: "html"
+
+# Clarimedis (medizinische Auskunft)
+- id: clarimedis-telefon
+  url: https://www.aok.de/pk/leistungen/medizinische-behandlung/aok-clarimedis-medizinische-informationen-am-telefon/
+  title: "Clarimedis – medizinische Infos am Telefon"
+  category: "clarimedis"
+  language: "de"
+  type: "html"
+
+- id: clarimedis-video
+  url: https://www.aok.de/pk/leistungen/medizinische-behandlung/clarimedis-videoberatung/
+  title: "Clarimedis – Videoberatung"
+  category: "clarimedis"
+  language: "de"
+  type: "html"
+
+# GKV anchors (framework/regulatory info)
+- id: gkv-hilfsmittel-overview
+  url: https://www.gkv-spitzenverband.de/krankenversicherung/hilfsmittel/hilfsmittelverzeichnis/hilfsmittelverzeichnis.jsp
+  title: "Hilfsmittelverzeichnis – Überblick"
+  category: "gkv"
+  language: "de"
+  type: "html"
+
+- id: gkv-hilfsmittel-portal
+  url: https://hilfsmittel.gkv-spitzenverband.de/
+  title: "Hilfsmittelverzeichnis – Portal"
+  category: "gkv"
+  language: "de"
+  type: "html"
+  
+- id: aok-leichte-sprache
+  url: https://www.aok.de/design/leichte-sprache.html
+  title: "Leichte Sprache – Erklärung AOK (Abkürzung)"
+  category: "about_aok"
+  language: "de"
+  type: "html"
+
+- id: aok-zahlen-fakten
+  url: https://www.aok.de/pp/zahlen-und-fakten/
+  title: "AOK – Zahlen und Fakten"
+  category: "about_aok"
+  language: "de"
+  type: "html"
+
+- id: aok-wir-ueber-uns
+  url: https://www.aok.de/pk/struktur-verwaltung/wir-ueber-uns/
+  title: "AOK – Wir über uns (Struktur, Verwaltung, Mitarbeitende)"
+  category: "about_aok"
+  language: "de"
+  type: "html"
+
+- id: aok-historie
+  url: https://www.aok.de/pk/bw/geschichte/
+  title: "AOK – Geschichte (1894 bis heute)"
+  category: "about_aok"
+  language: "de"
+  type: "html"
+
+- id: aok-niedersachsen-profil
+  url: https://www.krankenkassenzentrale.de/profil/aok-niedersachsen
+  title: "Profil AOK Niedersachsen – Hauptsitz und Leistungen"
+  category: "nds_about"
+  language: "de"
+  type: "html"
+
+- id: aok-niedersachsen-messeprofil
+  url: https://ausbildung-messe.de/de/ausstellerprofil/aok-niedersachsen-die-gesundheitskasse-hannover
+  title: "AOK Niedersachsen – Messeprofil (Hannover Standort)"
+  category: "nds_about"
+  language: "de"
+  type: "html"
+
+- id: aok-niedersachsen-versicherte
+  url: https://www.krankenkassen.de/krankenkassen-vergleich/statistik/versicherte/aktuell/
+  title: "Versichertenstatistik – AOK Niedersachsen"
+  category: "nds_about"
+  language: "de"
+  type: "html"
+
+- id: aok-startseite
+  url: https://www.aok.de/pk/
+  title: "Die AOK – Startseite (11 Unternehmen, PLZ-Suche)"
+  category: "about_aok"
+  language: "de"
+  type: "html"
+
+- id: aok-leistungen-a-z
+  url: https://www.aok.de/pk/leistungen/
+  title: "AOK Leistungen von A–Z"
+  category: "leistungen"
+  language: "de"
+  type: "html"

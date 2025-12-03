@@ -1,0 +1,450 @@
+# What does this FAQ represent?: Small, grounded, paraphrased Q&A dataset that ships with your repo so the chatbot works offline from day one and doubles as an evaluation set. 
+# Each answer is short and neutral German, and every item links to an official or authoritative source (AOK/GKV etc.)
+
+- id: faq-001
+  core: true
+  topic: "Mitgliedschaft"
+  question: "Wie werde ich Mitglied bei der AOK Niedersachsen?"
+  answer: "Sie können online den Mitgliedsantrag ausfüllen oder sich im Servicezentrum beraten lassen. Nach Aufnahme erhalten Sie Ihre Versicherungsunterlagen und Zugang zu 'Meine AOK'."
+  sources:
+    - "https://www.aok.de/pk/niedersachsen/"
+  routing_hint: "mitgliedschaft"
+  safety: "none"
+  region: "NI"
+
+- id: faq-002
+  core: true
+  topic: "Mitgliedschaft"
+  question: "Wie erhalte ich eine Mitgliedsbescheinigung für meinen Arbeitgeber?"
+  answer: "Die Bescheinigung laden Sie im Onlineportal 'Meine AOK' herunter. Alternativ können Sie sie telefonisch anfordern."
+  sources:
+    - "https://www.aok.de/pk/versichertenservice/onlineportal-meine-aok/"
+    - "https://www.aok.de/pk/kontakt/servicenummern/"
+  routing_hint: "serviceportal"
+  safety: "none"
+  region: "NI"
+
+- id: faq-003
+  core: true
+  topic: "Familienversicherung"
+  question: "Wer kann familienversichert werden?"
+  answer: "Ehegatten, Lebenspartner und Kinder können beitragsfrei mitversichert werden, wenn die gesetzlichen Voraussetzungen erfüllt sind."
+  sources:
+    - "docs/01_Satzung_AOK_Niedersachsen.pdf"
+  routing_hint: "familienversicherung"
+  safety: "none"
+  region: "NI"
+
+- id: faq-004
+  core: true
+  topic: "Portal/App"
+  question: "Welche Funktionen bietet 'Meine AOK'?"
+  answer: "Sie nutzen ein sicheres Postfach, laden Bescheinigungen hoch, beantragen Leistungen und verwalten Ihre Daten per App oder Web."
+  sources:
+    - "https://www.aok.de/pk/versichertenservice/onlineportal-meine-aok/"
+  routing_hint: "serviceportal"
+  safety: "none"
+  region: "NI"
+
+- id: faq-005
+  core: true
+  topic: "ePA"
+  question: "Was ist die elektronische Patientenakte (ePA)?"
+  answer: "Die ePA ist Ihr digitaler Speicher für Gesundheitsdokumente. Sie steuern, welche Praxen Zugriff erhalten, und nutzen sie per App/Web."
+  sources:
+    - "https://www.aok.de/pk/versichertenservice/elektronische-patientenakte/"
+  routing_hint: "epa"
+  safety: "none"
+  region: "DE"
+
+- id: faq-006
+  core: true
+  topic: "ePA"
+  question: "Wird eine ePA für alle eingerichtet?"
+  answer: "Die AOK informiert, dass die ePA flächendeckend bereitgestellt wird; Sie erhalten Hinweise zu Aktivierung, Berechtigungen und Datenschutz."
+  sources:
+    - "https://www.aok.de/pk/thema/epa-fuer-alle/"
+  routing_hint: "epa"
+  safety: "none"
+  region: "DE"
+
+- id: faq-007
+  core: true
+  topic: "Kontakt"
+  question: "Wie erreiche ich die AOK schnell?"
+  answer: "Nutzen Sie die Servicenummern oder vereinbaren Sie einen Termin im Servicezentrum vor Ort."
+  sources:
+    - "https://www.aok.de/pk/kontakt/servicenummern/"
+    - "https://www.aok.de/pk/kontakt/aok-vor-ort/"
+  routing_hint: "kontakt"
+  safety: "none"
+  region: "NI"
+
+- id: faq-008
+  core: true
+  topic: "Medizinische Auskunft"
+  question: "Was ist Clarimedis?"
+  answer: "Clarimedis bietet medizinische Informationen durch Fachpersonal per Telefon oder Video. Bei akuten Notfällen wenden Sie sich bitte direkt an den Rettungsdienst (112)."
+  sources:
+    - "https://www.aok.de/pk/leistungen/medizinische-behandlung/aok-clarimedis-medizinische-informationen-am-telefon/"
+    - "https://www.aok.de/pk/leistungen/medizinische-behandlung/clarimedis-videoberatung/"
+  routing_hint: "beratung_medizin"
+  safety: "medical"
+  region: "DE"
+
+- id: faq-009
+  core: true
+  topic: "Leistungen"
+  question: "Wo finde ich Leistungen der AOK im Überblick?"
+  answer: "Im Leistungsportal erhalten Sie Beschreibungen von A bis Z und Hinweise zu Voraussetzungen und Anträgen."
+  sources:
+    - "https://www.aok.de/pk/leistungen/"
+  routing_hint: "leistungen"
+  safety: "none"
+  region: "DE"
+
+- id: faq-010
+  core: true
+  topic: "Bonus/Prävention"
+  question: "Gibt es Bonus- oder Prämienprogramme?"
+  answer: "Ja, gesundheitsbewusstes Verhalten kann mit Punkten oder Prämien belohnt werden. Details und Teilnahmebedingungen stehen online."
+  sources:
+    - "https://www.aok.de/pk/bonus-praemienprogramme/"
+  routing_hint: "bonus"
+  safety: "none"
+  region: "DE"
+
+# --- Expand beyond Core-10 ---
+
+- id: faq-011
+  core: false
+  topic: "Krankengeld"
+  question: "Wer hat Anspruch auf Krankengeld?"
+  answer: "Ansprüche richten sich nach SGB V und der Satzung. Informationen zu Beginn, Dauer und Berechnung erhalten Sie in den offiziellen Hinweisen."
+  sources:
+    - "docs/01_Satzung_AOK_Niedersachsen.pdf"
+  routing_hint: "krankengeld"
+  safety: "none"
+  region: "NI"
+
+- id: faq-012
+  core: false
+  topic: "Kostenerstattung"
+  question: "Kann ich Kostenerstattung statt Sachleistung wählen?"
+  answer: "Ja, mit schriftlicher Erklärung können Sie die Kostenerstattung wählen. Erstattet wird bis zur Höhe der vergleichbaren Sachleistung, abzüglich gesetzlicher Anteile."
+  sources:
+    - "docs/01_Satzung_AOK_Niedersachsen.pdf"
+  routing_hint: "leistungen"
+  safety: "none"
+  region: "NI"
+
+- id: faq-013
+  core: false
+  topic: "Hausarztprogramm"
+  question: "Was ist das AOK-Hausarztprogramm?"
+  answer: "Sie bündeln Behandlungen über eine teilnehmende Hausarztpraxis und erhalten strukturierte Versorgung mit vereinfachten Abläufen."
+  sources:
+    - "https://www.aok.de/pk/leistungen/"
+  routing_hint: "versorgungsprogramme"
+  safety: "none"
+  region: "DE"
+
+- id: faq-014
+  core: false
+  topic: "Präventionskurse"
+  question: "Werden Präventionskurse gefördert?"
+  answer: "Leistungen richten sich nach dem GKV-Leitfaden Prävention. Erstattungsfähige Kurse und Kriterien sind dort beschrieben."
+  sources:
+    - "https://www.gkv-spitzenverband.de/media/dokumente/krankenversicherung_1/praevention__selbsthilfe__beratung/praevention/praevention_leitfaden/2024-12-19_GKV-Leitfaden_Praevention_barrierefrei.pdf"
+  routing_hint: "praevention"
+  safety: "none"
+  region: "DE"
+
+- id: faq-015
+  core: false
+  topic: "Hilfsmittel"
+  question: "Wie prüfe ich, ob ein Hilfsmittel übernommen wird?"
+  answer: "Das Hilfsmittelverzeichnis des GKV-Spitzenverbandes dient als Orientierung zur Leistungspflicht. Ihre AOK berät zum konkreten Antrag."
+  sources:
+    - "https://hilfsmittel.gkv-spitzenverband.de/"
+    - "https://www.gkv-spitzenverband.de/krankenversicherung/hilfsmittel/hilfsmittelverzeichnis/hilfsmittelverzeichnis.jsp"
+  routing_hint: "hilfsmittel"
+  safety: "none"
+  region: "DE"
+
+- id: faq-016
+  core: false
+  topic: "Ausland"
+  question: "Wie bin ich im EU-Ausland versorgt?"
+  answer: "Mit der EHIC erhalten Sie medizinisch notwendige Leistungen beim Vertragsarzt. Details zur Kostenübernahme stehen im Leistungsportal."
+  sources:
+    - "https://www.aok.de/pk/leistungen/"
+  routing_hint: "ausland"
+  safety: "none"
+  region: "DE"
+
+- id: faq-017
+  core: false
+  topic: "ePA"
+  question: "Wer sieht meine ePA-Daten?"
+  answer: "Sie vergeben Berechtigungen selbst und können Zugriffe jederzeit anpassen oder entziehen."
+  sources:
+    - "https://www.aok.de/pk/versichertenservice/elektronische-patientenakte/"
+  routing_hint: "epa"
+  safety: "none"
+  region: "DE"
+
+- id: faq-018
+  core: false
+  topic: "Service vor Ort"
+  question: "Wie finde ich ein Servicezentrum in meiner Nähe?"
+  answer: "Über die Suche 'AOK vor Ort' wählen Sie Standort und Termin."
+  sources:
+    - "https://www.aok.de/pk/kontakt/aok-vor-ort/"
+  routing_hint: "kontakt"
+  safety: "none"
+  region: "NI"
+
+- id: faq-019
+  core: false
+  topic: "Schwangerschaft"
+  question: "Welche zusätzlichen Vorsorgeleistungen in der Schwangerschaft unterstützt die AOK Niedersachsen?"
+  answer: "Die Satzung benennt zusätzliche Vorsorgeleistungen, z. B. bestimmte Tests oder Geburtsvorbereitung für Begleitpersonen, mit definierten Voraussetzungen."
+  sources:
+    - "docs/01_Satzung_AOK_Niedersachsen.pdf"
+  routing_hint: "schwangerschaft"
+  safety: "none"
+  region: "NI"
+
+- id: faq-020
+  core: false
+  topic: "Zahn"
+  question: "Erstattet die AOK Niedersachsen Professionelle Zahnreinigung?"
+  answer: "Die Satzung sieht eine Erstattung für Behandlungen bei zugelassenen Leistungserbringern vor; es gelten festgelegte Grenzen/Anzahl."
+  sources:
+    - "docs/01_Satzung_AOK_Niedersachsen.pdf"
+  routing_hint: "zahn"
+  safety: "none"
+  region: "NI"
+
+- id: faq-021
+  core: false
+  topic: "Hautkrebsscreening"
+  question: "Gibt es Zuschüsse für Hautkrebsscreening?"
+  answer: "Die Satzung regelt einen Zuschuss für bestimmte Alters- und Risikogruppen sowie Intervalle."
+  sources:
+    - "docs/01_Satzung_AOK_Niedersachsen.pdf"
+  routing_hint: "praevention"
+  safety: "none"
+  region: "NI"
+
+- id: faq-022
+  core: false
+  topic: "Sportmedizin"
+  question: "Werden sportmedizinische Vorsorgeuntersuchungen unterstützt?"
+  answer: "Ja, unter definierten Voraussetzungen und Intervallen bei Ärztinnen/Ärzten mit Zusatzbezeichnung Sportmedizin."
+  sources:
+    - "docs/01_Satzung_AOK_Niedersachsen.pdf"
+  routing_hint: "praevention"
+  safety: "none"
+  region: "NI"
+
+- id: faq-023
+  core: false
+  topic: "Digitale Versorgung"
+  question: "Übernimmt die AOK digitale Versorgungsprodukte?"
+  answer: "Eine Kostenübernahme ist möglich, wenn ein Vertrag mit dem Dienstleister besteht und die gesetzlichen Qualitätsanforderungen erfüllt sind."
+  sources:
+    - "docs/01_Satzung_AOK_Niedersachsen.pdf"
+  routing_hint: "digitale_versorgung"
+  safety: "none"
+  region: "NI"
+
+- id: faq-024
+  core: false
+  topic: "Osteopathie"
+  question: "Werden osteopathische Behandlungen erstattet?"
+  answer: "Unter qualitätsgesicherten Voraussetzungen kann eine Erstattung im Rahmen der Satzung erfolgen."
+  sources:
+    - "docs/01_Satzung_AOK_Niedersachsen.pdf"
+  routing_hint: "leistungen"
+  safety: "none"
+  region: "NI"
+
+- id: faq-025
+  core: false
+  topic: "Homöopathie"
+  question: "Gibt es Leistungen für homöopathische Behandlungen?"
+  answer: "Bestimmte homöopathische Leistungen/Arzneimittel können erstattungsfähig sein, wenn sie ärztlich verordnet und die Bedingungen erfüllt sind."
+  sources:
+    - "docs/01_Satzung_AOK_Niedersachsen.pdf"
+  routing_hint: "leistungen"
+  safety: "none"
+  region: "NI"
+
+- id: faq-026
+  core: false
+  topic: "DMP"
+  question: "Was sind strukturierte Behandlungsprogramme (DMP)?"
+  answer: "Für ausgewählte Erkrankungen gibt es strukturierte Programme mit abgestimmter Versorgung. Teilnahme und Inhalte sind geregelt."
+  sources:
+    - "docs/01_Satzung_AOK_Niedersachsen.pdf"
+  routing_hint: "versorgungsprogramme"
+  safety: "none"
+  region: "NI"
+
+- id: faq-027
+  core: false
+  topic: "Impfungen"
+  question: "Welche Erstattungen für Impfungen sind möglich?"
+  answer: "Neben Regelleistungen können satzungsgemäße Erstattungen bestehen, etwa für bestimmte Indikationen; Details sind festgelegt."
+  sources:
+    - "docs/01_Satzung_AOK_Niedersachsen.pdf"
+  routing_hint: "impfungen"
+  safety: "none"
+  region: "NI"
+
+- id: faq-028
+  core: false
+  topic: "Haushaltshilfe"
+  question: "Wann bekomme ich Haushaltshilfe?"
+  answer: "Wenn die Haushaltsführung aus medizinischen Gründen vorübergehend nicht möglich ist und ein Kind im Haushalt lebt, können Mehrleistungen greifen."
+  sources:
+    - "docs/01_Satzung_AOK_Niedersachsen.pdf"
+  routing_hint: "haushaltshilfe"
+  safety: "none"
+  region: "NI"
+
+- id: faq-029
+  core: false
+  topic: "Tarife"
+  question: "Gibt es Wahltarife (z. B. Beitragsrückerstattung oder Selbstbehalt)?"
+  answer: "Die Satzung regelt Teilnahme, Bindungsfristen und finanzielle Grenzen für Wahltarife."
+  sources:
+    - "docs/01_Satzung_AOK_Niedersachsen.pdf"
+  routing_hint: "tarife"
+  safety: "none"
+  region: "NI"
+
+- id: faq-030
+  core: false
+  topic: "Kontakt"
+  question: "Welche Kontaktwege habe ich außer Telefon?"
+  answer: "Sie können das sichere Postfach in 'Meine AOK' nutzen, Unterlagen hochladen oder Postanschrift/Servicecenter verwenden."
+  sources:
+    - "https://www.aok.de/pk/versichertenservice/onlineportal-meine-aok/"
+    - "https://www.aok.de/pk/kontakt/postanschrift/"
+  routing_hint: "kontakt"
+  safety: "none"
+  region: "NI"
+  
+- id: faq-031
+  core: false
+  topic: "AOK Basics"
+  question: "Wofür steht die Abkürzung AOK?"
+  answer: "AOK steht für Allgemeine Ortskrankenkasse."
+  sources:
+    - "https://www.aok.de/design/leichte-sprache.html"
+  routing_hint: "about_aok"
+  safety: "none"
+  region: "DE"
+
+- id: faq-032
+  core: false
+  topic: "AOK Basics"
+  question: "Was ist die AOK allgemein?"
+  answer: "Die AOK ist eine Gemeinschaft von elf regionalen Krankenkassen – '11 Unternehmen, eine starke Gemeinschaft' – mit regional unterschiedlichen Angeboten."
+  sources:
+    - "https://www.aok.de/pk/"
+  routing_hint: "about_aok"
+  safety: "none"
+  region: "DE"
+
+- id: faq-033
+  core: false
+  topic: "AOK Basics"
+  question: "Wie viele Menschen sind bei der AOK versichert?"
+  answer: "Mehr als 27 Millionen Menschen sind bei der AOK versichert (GKV-weit über 74 Millionen)."
+  sources:
+    - "https://www.aok.de/pp/zahlen-und-fakten/"
+  routing_hint: "about_aok"
+  safety: "none"
+  region: "DE"
+
+- id: faq-034
+  core: false
+  topic: "AOK Basics"
+  question: "Wie viele regionale AOKs gibt es?"
+  answer: "Zur AOK-Gemeinschaft gehören elf selbstständige AOKs sowie der AOK-Bundesverband."
+  sources:
+    - "https://www.aok.de/pk/"
+  routing_hint: "about_aok"
+  safety: "none"
+  region: "DE"
+
+- id: faq-035
+  core: false
+  topic: "AOK Basics"
+  question: "Wie groß ist die AOK insgesamt (Mitarbeitende und Standorte)?"
+  answer: "Rund 60.000 Mitarbeitende und über 1.000 Geschäftsstellen gewährleisten den Service der AOK."
+  sources:
+    - "https://www.aok.de/pk/struktur-verwaltung/wir-ueber-uns/"
+  routing_hint: "about_aok"
+  safety: "none"
+  region: "DE"
+
+- id: faq-036
+  core: false
+  topic: "AOK Niedersachsen"
+  question: "Wo hat die AOK Niedersachsen ihren Hauptsitz?"
+  answer: "Die Zentrale befindet sich in Hannover."
+  sources:
+    - "https://www.krankenkassenzentrale.de/profil/aok-niedersachsen"
+    - "https://ausbildung-messe.de/de/ausstellerprofil/aok-niedersachsen-die-gesundheitskasse-hannover"
+  routing_hint: "nds_about"
+  safety: "none"
+  region: "NI"
+
+- id: faq-037
+  core: false
+  topic: "AOK Niedersachsen"
+  question: "Wie viele Versicherte hat die AOK Niedersachsen?"
+  answer: "Rund 3,08 Millionen Versicherte (Stand 01.07.2025)."
+  sources:
+    - "https://www.krankenkassen.de/krankenkassen-vergleich/statistik/versicherte/aktuell/"
+  routing_hint: "nds_about"
+  safety: "none"
+  region: "NI"
+
+- id: faq-038
+  core: false
+  topic: "AOK Basics"
+  question: "Wie finde ich heraus, welche AOK für mich zuständig ist?"
+  answer: "Über die AOK-Startseite können Sie anhand Ihrer Postleitzahl die zuständige AOK ermitteln."
+  sources:
+    - "https://www.aok.de/pk/"
+  routing_hint: "about_aok"
+  safety: "none"
+  region: "DE"
+
+- id: faq-039
+  core: false
+  topic: "AOK Basics"
+  question: "Welche Leistungen bietet die AOK grundsätzlich?"
+  answer: "Im Leistungsportal finden Sie die Kassenleistungen von A bis Z sowie Hinweise zu Voraussetzungen und Anträgen."
+  sources:
+    - "https://www.aok.de/pk/leistungen/"
+  routing_hint: "leistungen"
+  safety: "none"
+  region: "DE"
+
+- id: faq-040
+  core: false
+  topic: "AOK Basics"
+  question: "Seit wann gibt es die AOK-Idee historisch?"
+  answer: "Die AOK leitet sich aus den Ortskrankenkassen ab; 1894 wurde der Centralverband der Ortskrankenkassen gegründet."
+  sources:
+    - "https://www.aok.de/pk/bw/geschichte/"
+  routing_hint: "about_aok"
+  safety: "none"
+  region: "DE"

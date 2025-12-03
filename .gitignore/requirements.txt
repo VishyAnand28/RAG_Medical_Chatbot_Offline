@@ -1,0 +1,39 @@
+# Core RAG framework
+langchain==0.2.*
+langchain-community==0.2.*
+langchain-huggingface==0.0.*
+langgraph==0.2.*
+langchain-chroma
+ollama
+
+# Vector store (lightweight, local)
+chromadb==0.5.*
+rank_bm25
+
+# Embeddings / reranker models
+sentence-transformers==2.7.*
+transformers==4.43.*
+torch>=2.1
+accelerate>=0.29
+
+# Document ingestion & cleaning
+pyyaml
+trafilatura==1.8.*     # HTML cleaner/extractor
+pymupdf==1.24.*        # PDF parsing (fitz)
+requests
+
+# Backend API
+fastapi==0.114.*
+uvicorn[standard]==0.30.*
+
+# Frontend (choose one or both)
+streamlit==1.37.*
+gradio==4.44.*
+
+# Evaluation
+ragas==0.1.*
+datasets>=2.20
+
+# Utilities
+pydantic==2.*
+python-dotenv

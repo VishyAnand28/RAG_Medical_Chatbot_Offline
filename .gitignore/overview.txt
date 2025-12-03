@@ -1,0 +1,499 @@
+Repo Layout / Project Directory Tree
+
+aok-rag-bot/
+├─ app/
+│  ├─ api/                     # FastAPI endpoints - Not done
+│  ├─ rag/
+│  │  ├─ graph.py              # LangGraph: nodes/edges
+│  │  ├─ retriever.py          # semantic search + rerank
+│  │  ├─ prompts.py            # system & answer templates (German)
+│  │  └─ guardrails.py         # safety & escalation rules
+│  └─ ui/
+│     └─ streamlit_app.py
+├─ data/
+│  ├─ raw 
+│  ├─ processed 
+│  ├─ seed_sources.yaml        # curated crawl targets
+│  ├─ faq_de.yaml              # 10-topic paraphrased FAQ
+│  └─ docs/                    # (optional) user-provided PDFs
+├─ ingest/
+│  ├─ ingest.py                # loads YAML, fetches, cleans, chunks, upserts/ # scrape → clean → chunk → embed → upsert
+│  └─ cleaners.py              # HTML/PDF cleaners (nav stripping etc.)
+├─ models/
+│  └─ README.md                # how to pull HF models locally (offline cache)
+├─ docker/
+│  ├─ Dockerfile.app           # Not done
+│  ├─ docker-compose.yml       # Not done
+│  └─ requirements.txt         # Not done
+├─ scripts/
+│  ├─ download_models.sh       # prefetch embeddings/reranker - Not done
+│  └─ build_index.sh           # wrapper for ingest.py - Not done
+├─ tests/
+│  ├─ build_evalset_from_faq.py # make eval_set.jsonl from FAQ
+│  ├─ collect_answers.py        # run your pipeline, save answers+contexts
+│  ├─ ragas_eval.py             # compute RAGAS metrics (faithfulness, etc.)
+│  └─ ragas_scores.csv          # (generated): per-sample & summary scores
+├─ .env.example
+├─ requirements.txt
+└─ README.md
+
+Ingest HTML/PDF → chunk → embed → vector DB
+RAG with LangChain + LangGraph (no OpenAI)
+Embeddings & reranker via HuggingFace
+LLM via Ollama (local)
+Display via Streamlit or Gradio
+Serve API via FastAPI + Uvicorn
+Eval via RAGAS
+Containerize via Docker (so freeze Python deps here)
+
+Ingest: python -m ingest.ingest --manifest data/seed_sources.yaml --faq data/faq_de.yaml
+Smoke Test: python scripts/smoke_retrieval.py; python -m scripts.smoke_hybrid
+python -m streamlit run ui/streamlit_app.py
+
+python -m scripts.smoke_graph
+# Try:
+# - "Notfall, starke Brustschmerzen – was tun?"
+# - "Wie ändere ich meine Bankverbindung?"
+# - "Schreib mir ein Python-Programm ..."
+
+RAGAS:
+python -m tests.build_evalset_from_faq
+python -m tests.collect_answers
+python -m tests.ragas_eval
+
+Ingest:
+cleaners.py
+	small helpers to normalize text (strip menus, boilerplate, artifacts from HTML/PDF).
+	optional chunker (split text into ~500–1000 tokens so embeddings work).
+
+ingest.py
+	entrypoint script for the pipeline.
+	does these steps when you run it:
+	load sources (seed_sources.yaml, faq_de.yaml, or PDFs from data/docs).
+	fetch/parse HTML or PDF → raw text.
+	clean & chunk (via cleaners.py).
+	embed chunks with HuggingFace model (BAAI/bge-m3).
+	upsert into Chroma (your vector database at data/processed/chroma).
+	(optionally) dump chunks into a JSONL file → later used for BM25 hybrid retrieval.
+
+rag
+
+retriever.py — Hybrid retrieval (+ optional rerank)
+	What it does: Finds the best context chunks for a user question.
+How:
+	Dense: Chroma vector store (persisted at data/processed/chroma) using BAAI/bge-m3.
+	Sparse: BM25 over a JSONL corpus (data/processed/chunks.jsonl) dumped by the ingest step.
+	Fusion: EnsembleRetriever combines BM25 + dense (weights ~0.45/0.55).
+	(Optional) Reranker: BAAI/bge-reranker-v2-m3 cross-encoder reorders the fused results.
+	Tuning knobs: k_pool, weights, top_k, and reranker on/off.
+
+prompts.py — System prompt & formatting
+	What it does: Builds the German instruction prompt passed to the LLM.
+	Rules baked in:
+	Answer only from provided context; if insufficient, say you have no evidence.
+	No made-up URLs; be concise (3–6 sentences).
+	The model must not print its own sources list (we append curated citations later).
+
+guardrails.py — Simple safety / routing
+	What it does: Lightweight guardrails before generation.
+	Now: is_emergency() detects acute/medical-emergency hints; returns a stock escalation message (112 / Clarimedis) instead of generating.
+	graph.py — LangGraph pipeline (retrieve → generate)
+	What it does: Orchestrates the flow with a small state machine.
+	Nodes:
+	route → decides “emergency?” (then end) or proceed to retrieval.
+
+retrieve → calls HybridRetriever (BM25 + dense + optional rerank) and stores top-k docs.
+generate → builds the prompt with contexts, calls Ollama (llama3.2:3b), strips any model-made “Quellen”, and appends our citations (titles + URLs from retrieved docs).
+Resource-safe settings: temperature=0.2, smaller context (e.g., num_ctx omitted or ~4096) and num_predict=256 to fit your RAM.
+
+What we validated
+	Ingestion & index built successfully (Chroma + BM25 JSONL).
+	Hybrid retrieval returns relevant AOK/GKV pages + FAQ chunks.
+	End-to-end RAG answers render correctly with a single curated Quellen block.
+	Ollama model confirmed (llama3.2:3b, chat/instruct template present).
+
+Perfect time to zoom out 🚀 — you’ve already built ingestion + hybrid retrieval, now let’s map the **tooling landscape for RAG** so you know what each piece is, what options exist, and what’s “best” in 2025.
+
+---
+
+# 🧩 Core Components in a RAG System
+
+## 1. **Embedder** (turns text → vectors)
+
+* **What it does**: maps chunks of text into numerical vectors so “semantic similarity” can be computed.
+* **Popular options**:
+
+  * 🔹 **HuggingFace sentence-transformers** (e.g., `BAAI/bge-m3`, `all-MiniLM-L6-v2`) → free, local, flexible.
+  * 🔹 **OpenAI embeddings** (`text-embedding-3-small/large`) → very high quality, but requires API + cost.
+  * 🔹 **Cohere Embed**, **Jina AI**, **Voyage AI** → commercial, often stronger multilingual.
+* **Best choice**:
+
+  * ✅ For **offline, healthcare-sensitive, and German content** → `BAAI/bge-m3` (multi-lingual, strong benchmarks).
+  * ❌ OpenAI API if you need local-only.
+
+---
+
+## 2. **Retriever** (how we fetch candidate docs)
+
+* **What it does**: finds the most relevant chunks for a query.
+* **Types**:
+
+  * 🔹 **Dense retrievers** → use only embeddings (e.g., Chroma, FAISS, Weaviate).
+  * 🔹 **Sparse retrievers** → keyword-based (BM25, ElasticSearch, Whoosh).
+  * 🔹 **Hybrid retrievers** → fuse both (LangChain `EnsembleRetriever`).
+  * 🔹 **Advanced** → ColBERT, SPLADE (neural retrievers).
+* **Best choice**:
+
+  * ✅ Hybrid (BM25 + dense) → balances precision (keywords) + recall (semantics).
+  * ✅ Add reranking on top for quality.
+
+---
+
+## 3. **Reranker** (re-scores retrieval results)
+
+* **What it does**: takes top-k candidate chunks, and a cross-encoder model re-evaluates them in context of the query.
+* **Popular models**:
+
+  * 🔹 `BAAI/bge-reranker-v2-m3` (HuggingFace) → SOTA, multilingual, local.
+  * 🔹 `cross-encoder/ms-marco-MiniLM-L-6-v2` → smaller, lighter, weaker.
+  * 🔹 OpenAI `text-embedding-ada-002` style reranking (via API).
+* **Best choice**:
+
+  * ✅ `bge-reranker-v2-m3` if you have GPU / enough RAM (\~2.3 GB).
+  * ❌ skip reranker if resource-constrained, but retrieval quality drops.
+
+---
+
+## 4. **Vector Database (VDB)** (stores embeddings)
+
+* **What it does**: stores vectors and performs similarity search (ANN: approximate nearest neighbors).
+* **Options**:
+
+  * 🔹 **Chroma** → easy, LangChain-native, good for prototyping.
+  * 🔹 **FAISS** (Meta) → rock-solid, local, production-ready.
+  * 🔹 **Weaviate**, **Qdrant**, **Milvus** → server-grade, clustering, scaling.
+  * 🔹 **ElasticSearch / OpenSearch** → if you want hybrid sparse+dense in one place.
+* **Best choice**:
+
+  * ✅ **FAISS** if you want lightweight local + production stability.
+  * ✅ **Chroma** if you want easy integration.
+  * ✅ **Qdrant** if you want hybrid + REST API deployment.
+
+---
+
+## 5. **Chunker / Preprocessor**
+
+* **What it does**: splits docs into manageable pieces (300–1000 tokens) so embeddings make sense.
+* **Options**:
+
+  * LangChain `RecursiveCharacterTextSplitter`
+  * Custom (like your `cleaners.py`)
+* **Best choice**:
+
+  * ✅ Recursive chunking + overlap (\~200 tokens overlap).
+
+---
+
+## 6. **LLM (Generator)**
+
+* **What it does**: consumes query + retrieved docs, generates answer.
+* **Options**:
+
+  * 🔹 **Ollama** (local hosting of LLaMA-3, Mistral, Gemma etc.).
+  * 🔹 **OpenAI GPT-4o / 4-mini** → strong, API-based.
+  * 🔹 **LLaMA-3.2 (Meta)**, **Mistral 7B**, **Phi-3-mini** → open, local, good.
+* **Best choice**:
+
+  * ✅ Ollama + **LLaMA-3.2-Instruct** (German + English).
+  * ✅ For small RAM laptops → `Phi-3-mini-4k-instruct`.
+
+---
+
+## 7. **Eval tools**
+
+* **What it does**: checks if RAG answers are correct, faithful, relevant.
+* **Options**:
+
+  * 🔹 **RAGAS** (open-source, built for RAG evaluation).
+  * 🔹 **TruLens** (trace-based).
+  * 🔹 Human evals (gold-standard).
+* **Best choice**:
+
+  * ✅ RAGAS + a few golden test queries.
+
+---
+
+# 🏆 Recommended Stack for You (offline, German, healthcare)
+
+* **Embedder**: `BAAI/bge-m3` (multi-lingual, CPU/GPU friendly).
+* **Retriever**: Hybrid (BM25 + dense) with `EnsembleRetriever`.
+* **Reranker**: `BAAI/bge-reranker-v2-m3`.
+* **Vector DB**: Chroma now → FAISS or Qdrant later.
+* **LLM**: Ollama with `LLaMA-3.2-3B-Instruct` or `Phi-3-mini`.
+* **Eval**: RAGAS notebook in `/tests/`.
+
+---
+
+📌 In short:
+
+* **Embed** → semantic vectors.
+* **Retriever** → get candidates (BM25 + dense).
+* **Reranker** → refine candidates.
+* **LLM** → final answer.
+* **Vector DB** → the “memory”.
+
+---
+
+
+Here’s exactly what that RAGAS workflow does, step-by-step, and why each step exists.
+
+---
+
+# 1) Build an evaluation set from your FAQ
+
+**File:** `tests/build_evalset_from_faq.py`
+**Command:** `python -m tests.build_evalset_from_faq`
+
+**What happens**
+
+1. Load `data/faq_de.yaml`.
+2. For each FAQ item, take:
+
+   * `question` → becomes the **eval question**.
+   * `answer` → becomes the **ground truth** (wrapped as a one-item list, as RAGAS expects `ground_truths: List[str]`).
+3. Shuffle and keep N items (default 20) so the run is quick.
+4. Write out **one JSON line per sample** to `tests/eval_set.jsonl` with:
+
+   ```json
+   {"question": "...", "ground_truths": ["..."]}
+   ```
+
+**Why**
+
+* You need a *reference* answer to judge model outputs against. Your FAQ gives you high-precision ground truth.
+
+---
+
+# 2) Collect model answers and the contexts used
+
+**File:** `tests/collect_answers.py`
+**Command:** `python -m tests.collect_answers`
+
+**What happens**
+
+1. Load the compiled **LangGraph**: `graph = build_graph()`.
+2. For each row in `tests/eval_set.jsonl`:
+
+   * Create `RAGState(question=q)` and call `graph.invoke(state)`.
+   * This triggers your full pipeline: guardrails → `HybridRetriever` (BM25 + dense + rerank) → LLM generation with your prompt.
+   * Capture:
+
+     * `answer` → the model’s generated text.
+     * `docs` (top-k retrieved chunks) → extract their `text` as **contexts** (RAGAS expects `List[str]`).
+3. Write **one JSON line per sample** to `tests/eval_set_with_preds.jsonl` with:
+
+   ```json
+   {
+     "question": "...",
+     "ground_truths": ["..."],
+     "answer": "...",
+     "contexts": ["chunk1 text...", "chunk2 text...", ...]
+   }
+   ```
+
+**Why**
+
+* RAGAS metrics evaluate two things:
+
+  1. how well the **answer** matches the **ground truth** and is supported by **contexts**, and
+  2. how relevant/complete the **contexts** are for the **question**.
+* Therefore you must provide **both** the generated answer and the **exact contexts** you fed the LLM.
+
+---
+
+# 3) Score with RAGAS
+
+**File:** `tests/ragas_eval.py`
+**Command:** `python -m tests.ragas_eval`
+
+**What happens**
+
+1. Load `tests/eval_set_with_preds.jsonl` into a Hugging Face `Dataset`.
+2. Instantiate **offline judges**:
+
+   * `judge_llm`: a local LLM via `ChatOllama(model="llama3.2:3b", temperature=0.0)`.
+     *Used by RAGAS to judge semantic qualities (e.g., “does this answer address the question?”).*
+   * `embeddings`: `BAAI/bge-m3` via `HuggingFaceEmbeddings` (normalize on).
+     *Used by RAGAS to compute semantic similarity between answer/ground truth/context.*
+3. Run `ragas.evaluate(...)` with chosen metrics:
+
+   * **faithfulness**: is the answer supported by the provided **contexts** (grounding)?
+   * **answer_relevancy**: does the answer address the **question**?
+   * **context_precision**: how relevant are the **returned contexts** to the **question**? (penalizes extra/noisy passages)
+   * **context_recall**: did your retrieval include the **necessary** context to answer the question? (penalizes missing key passages)
+4. Print the **mean** of each metric and save per-sample details to `tests/ragas_scores.csv`.
+
+**Why**
+
+* Faithfulness tells you if the generator uses the retrieved text (low = hallucinating or off-context).
+* Context precision/recall tells you if the **retriever** is over- or under-fetching relevant chunks.
+* Answer relevancy checks if the output actually answers the question.
+
+---
+
+# 4) Interpreting scores (quick heuristics)
+
+* **Faithfulness** is your “no hallucination” signal. If low, tighten prompts (stricter grounding), reduce top-k, or fix retrieval noise/reranker.
+* **Context precision** low → your top-k includes irrelevant chunks (noise). Consider stronger reranking, lower `top_k`, better cleaners/chunking.
+* **Context recall** low → retriever missed key chunks. Consider higher `top_k`, adjust BM25/dense weights, improve embeddings or tokenization.
+* **Answer relevancy** low → LLM didn’t address the question; improve prompt, reduce distractions (fewer/noisier contexts), lower temperature, or pick a model with better instruction following.
+
+---
+
+# 5) Why it’s offline-friendly
+
+* The **judge LLM** is your **local Ollama model** (no external API).
+* The **embeddings** are computed locally via `HuggingFaceEmbeddings`.
+* Everything runs inside your `env_aok_chatbot` environment.
+
+---
+
+# 6) Typical ablation workflow (how to use RAGAS to improve)
+
+1. Baseline run:
+
+   * `build_evalset_from_faq` → `collect_answers` → `ragas_eval`
+2. Change one thing:
+
+   * e.g., `top_k` from 4 → 6, or disable `bge-reranker`, or switch BM25 weight.
+3. Re-run `collect_answers` (to regenerate answers/contexts) → `ragas_eval`.
+4. Compare `ragas_scores.csv` means across runs. Keep a small table of:
+
+   * config (top-k, reranker on/off, prompt variant)
+   * faithfulness, context_precision, context_recall, answer_relevancy.
+
+---
+
+# 7) Common pitfalls (and fixes)
+
+* **Answers include a “Quellen:” block generated by the model** → your `graph.py` already strips model-specified sources; good. Keep it to avoid confusing RAGAS.
+* **Contexts are empty for some questions** → retrieval failed; your `retrieve` node returns a fallback answer. Those items will hurt recall/faithfulness; investigate source coverage or chunking.
+* **Inconsistent results run-to-run** → set temperature to **0.0** for both the judge LLM and your generation LLM during eval.
+* **Slow judging** → evaluate on **10–20** items first; expand later. Use smaller judge model if needed.
+
+---
+
+## TL;DR
+
+* **Step 1** turns your FAQ into an **eval set** (questions + ground truths).
+* **Step 2** runs your **actual pipeline** to produce answers **and the exact contexts** used.
+* **Step 3** uses RAGAS (with local judges) to score faithfulness, context precision/recall, and answer relevancy.
+* Use the scores to tune retrieval (`top_k`, reranker), prompts, and chunking—repeat until the metrics look strong.
+
+RAG Chatbot Pipeline:
+                ┌──────────────────────┐
+                │   Data Sources       │
+                │  (AOK site, PDFs, FAQ│
+                └─────────┬────────────┘
+                          │
+                ┌─────────▼────────────┐
+                │     Ingestion        │
+                │ ingest/ingest.py     │
+                │ + cleaners.py        │
+                └─────────┬────────────┘
+                          │
+                  ┌───────▼────────┐
+                  │  Chunker       │
+                  │ (split text)   │
+                  └───────┬────────┘
+                          │
+                  ┌───────▼────────┐
+                  │ Embedder       │
+                  │ BAAI/bge-m3    │
+                  └───────┬────────┘
+                          │
+          ┌───────────────▼─────────────────┐
+          │   Vector DB (Dense Index)       │
+          │   Chroma (data/processed/chroma)│
+          └───────────────┬─────────────────┘
+                          │
+ ┌────────────────────────▼────────────────────────┐
+ │ Hybrid Retriever (app/rag/retriever.py)         │
+ │  • BM25Retriever (sparse, chunks.jsonl)         │
+ │  • DenseRetriever (Chroma vectors)              │
+ │  → EnsembleRetriever (fusion, weights)          │
+ └────────────────────────┬────────────────────────┘
+                          │
+                  ┌───────▼────────┐
+                  │   Reranker     │
+                  │ bge-reranker   │
+                  └───────┬────────┘
+                          │
+                  ┌───────▼────────┐
+                  │    LLM (Ollama)│
+                  │ LLaMA-3.2 / Phi│
+                  └───────┬────────┘
+                          │
+                  ┌───────▼────────┐
+                  │ LangGraph      │
+                  │ graph.py       │
+                  │ (retrieval→gen)│
+                  └───────┬────────┘
+                          │
+             ┌────────────▼────────────┐
+             │  Answer + Citations     │
+             │  Streamlit / FastAPI    │
+             └─────────────────────────┘
+
+
+
+🧐 Your retriever returns high-similarity junk—how do you improve contextual precision? What do you do?
+
+In Retrieval-Augmented Generation (RAG), one of the most common failure modes is this:
+The retriever confidently returns passages that look similar to the query but are contextually irrelevant.
+
+Example:
+🔹 Query → “How do I enable two-factor authentication in Gmail?”
+🔹 Retriever → returns docs about “multi-factor auth in Microsoft Teams.”
+High overlap, wrong context.
+
+This is a precision problem: lots of near-matches, few truly useful hits.
+
+Here’s how strong teams improve contextual precision:
+1️) Better chunking strategies → Ensure documents are split semantically, not arbitrarily.
+2️) Query rewriting / expansion (HyDE, query routing) → Make queries more precise before retrieval.
+3️) Use rerankers → Add a lightweight ranking step that scores passages by contextual relevance, not just embedding similarity.
+4️) Task-specific embeddings → Fine-tune embeddings on your domain instead of relying on generic off-the-shelf vectors.
+
+💡 RAG isn’t about fetching “similar” text. It’s about fetching the right text. Without contextual precision, your generator is building on junk.
+
+Smart Chunking: Adaptive + Semantic; Advanced Reranking; Incremental Re-Embedding (FAISS, HNSW); Hybrid Retrieval (KWs + Vectors); Guardrails & Fact-Checking
+
+Why metrics are failing?
+Here’s the crisp, interview-ready answer:
+
+**Why it failed:**
+“The failures weren’t in my RAG pipeline—they were in the *evaluation step*. RAGAS uses an LLM-as-judge that must return strict JSON. I was judging with a small 3B base model which occasionally echoed the few-shot examples (the ‘Einstein’ text) instead of emitting valid JSON, and concurrent calls on my laptop caused timeouts. Early on I also hit a RAGAS/LangChain version-schema mismatch, which I fixed.”
+
+**What I changed to stabilize it:**
+
+* Pinned/aligned deps and switched to the RAGAS ≥0.2 schema (`user_input`, `reference`, `response`, `retrieved_contexts`).
+* Forced JSON output (`format="json"`) + strict decoding (temp=0, top_k=1, top_p=0.1, short outputs).
+* Used the **instruct** variant of the same 3B model and serialized judge calls (`OLLAMA_NUM_PARALLEL=1`) to avoid timeouts.
+* Validated/capped contexts (list[str], dedup, length limit) and ensured non-empty `reference`.
+* Made evaluation tolerant to single-row judge failures (`raise_exceptions=False`) and reported aggregates.
+
+**How I’d prevent it in production:**
+“Keep the RAG model, but use a more deterministic judge (instruct model/API), add a JSON schema validator with auto-retry, and run preflight checks on data shapes. For retrieval quality, complement LLM-judged metrics with embedding-based ones to reduce dependence on a chat model’s formatting.”
+
+“The NaNs aren’t from my RAG outputs; they’re from the LLM-as-judge sometimes failing to emit strict JSON. I fixed it by aligning RAGAS v0.2 schema, using the instruct variant of the 3B judge with format="json" and deterministic decoding, serializing judge calls, and trimming contexts. After that, all metrics compute reliably; remaining NaNs (if any) are isolated row-level judge timeouts and don’t affect the aggregate.”
+
+4) Interpreting scores (quick heuristics)
+
+Faithfulness is your “no hallucination” signal. If low, tighten prompts (stricter grounding), reduce top-k, or fix retrieval noise/reranker.
+
+Context precision low → your top-k includes irrelevant chunks (noise). Consider stronger reranking, lower top_k, better cleaners/chunking.
+
+Context recall low → retriever missed key chunks. Consider higher top_k, adjust BM25/dense weights, improve embeddings or tokenization.
+
+Answer relevancy low → LLM didn’t address the question; improve prompt, reduce distractions (fewer/noisier contexts), lower temperature, or pick a model with better instruction following.

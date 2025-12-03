@@ -1,0 +1,336 @@
+# 1) What lives where (map to your tree)
+
+```
+aok-rag-bot/
+├─ app/
+│  ├─ api/                     # (reserved) FastAPI endpoints (not needed for local demo)
+│  ├─ rag/
+│  │  ├─ graph.py              # Orchestrates the RAG pipeline with LangGraph
+│  │  ├─ retriever.py          # Hybrid retriever: BM25 + dense (Chroma) + reranker
+│  │  ├─ prompts.py            # System prompt + prompt builder (German, grounded)
+│  │  └─ guardrails.py         # Heuristics for emergency/out-of-scope/member-specific
+│  └─ ui/
+│     └─ streamlit_app.py      # The local browser UI (Streamlit)
+├─ data/
+│  ├─ raw/                     # Raw HTML/PDF dumps (optional)
+│  ├─ processed/               # **All runtime indices**
+│  │  ├─ chroma/               # Chroma vector store (dense index) → loaded at query time
+│  │  └─ chunks.jsonl          # Plaintext chunks for BM25 (sparse index corpus)
+│  ├─ seed_sources.yaml        # Crawl targets (AOK pages) → used by ingest.py
+│  ├─ faq_de.yaml              # Seed FAQ/answers (German) → also ingested as docs
+│  └─ docs/                    # Any PDFs you drop in → ingested
+├─ ingest/
+│  ├─ ingest.py                # CLI: fetch → clean → chunk → embed → upsert indexes
+│  └─ cleaners.py              # HTML/PDF cleaners (strip nav, footers, boilerplate)
+├─ scripts/
+│  ├─ download_models.sh       # Pre-pull HF models (optional convenience)
+│  └─ build_index.sh           # Wrapper calling ingest.py (optional convenience)
+├─ tests/
+│  └─ rag_eval.ipynb           # RAGAS/Eval scratchpad (optional)
+└─ README.md / .env.example    # Usage info / env vars
+```
+
+---
+
+# 2) Ingestion path (one-time or whenever you update sources)
+
+Command you run:
+
+```powershell
+python -m ingest.ingest --manifest data/seed_sources.yaml --faq data/faq_de.yaml
+```
+
+What actually happens in `ingest/ingest.py`:
+
+1. Load sources
+
+   * Reads `data/seed_sources.yaml` (curated URLs, titles).
+   * Reads `data/faq_de.yaml` (your 30–40 FAQ tuples); each FAQ becomes a “document” too.
+   * Optionally reads local PDFs from `data/docs/`.
+
+2. Fetch + clean
+
+   * For URLs, HTML is fetched (e.g., `trafilatura`) and passed through `cleaners.py`:
+
+     * Remove menus, footers, cookie banners, repeated nav.
+     * Normalize whitespace; keep headings and body text.
+   * For PDFs, text is extracted and cleaned similarly.
+
+3. Chunk
+
+   * Clean text is split into overlapping chunks (e.g., 500–800 chars, 50–100 overlap)
+     so a retriever can return **precise passages**.
+   * Each chunk gets **metadata**: `{title, url, type='html/pdf/faq', id, source_name…}`.
+   * All chunks are written to **`data/processed/chunks.jsonl`** (this is your **BM25 corpus**).
+
+4. Embed + upsert (dense index)
+
+   * Uses **Hugging Face embeddings** (e.g., `BAAI/bge-m3`) to convert each chunk → vector.
+   * Upserts into **Chroma**, persisted at **`data/processed/chroma/`**.
+   * This is your **dense vector index**, re-used at query time.
+
+5. Persist
+
+   * Chroma auto-persists; you also keep the plain text chunks in `chunks.jsonl`.
+   * In logs you saw:
+     `✅ ingestion done → data/processed/chroma | chunks: seed=XX, faq=YY, total=ZZ`
+   * **Bottom line:** after ingest, you have **two indices** of the same content:
+
+     * **Sparse** (BM25) → `processed/chunks.jsonl`
+     * **Dense** (vectors) → `processed/chroma/`
+
+> You only re-run ingest when you add/change sources. The Streamlit app & retriever **do not** re-fetch websites.
+
+---
+
+# 3) Retrieval path (what happens when you ask a question)
+
+This is all inside `app/rag/retriever.py` and `app/rag/graph.py`.
+
+## 3.1 `HybridRetriever` (retriever.py)
+
+When `retrieve(q, top_k=4)` is called:
+
+1. Load indices
+
+   * **BM25**: reads `data/processed/chunks.jsonl` into `BM25Retriever`
+     (sparse keyword match, great for exact terms like “Mitgliedsbescheinigung”).
+   * **Chroma**: opens persisted vector store at `data/processed/chroma/`
+     using the **same embedding model** to embed the **query**.
+
+2. Search both ways
+
+   * `bm25_hits = top_k’ from the BM25 index`
+   * `dense_hits = top_k’ from the vector index (semantic)`
+
+3. Merge + rerank
+
+   * Combine BM25 + dense results (e.g., weighted fusion).
+   * Pass the combined top N through a cross-encoder reranker
+     (e.g., `BAAI/bge-reranker-v2-m3`) that scores (query, passage) pairs.
+   * Return the final top_k chunks with highest relevance (each as dict with `text` + `meta`).
+
+Why hybrid?
+
+* BM25 catches exact terms, acronyms, proper nouns.
+* Dense vectors catch paraphrases (“Mitgliedsbescheinigung” ≈ “Bescheinigung für Arbeitgeber”).
+* Reranker reduces noise by reading query + passage together.
+
+## 3.2 LangGraph pipeline (graph.py)
+
+We keep a simple, explicit state machine:
+
+State (`RAGState`)
+
+```python
+question: str
+docs: list           # retrieved passages
+answer: str          # final answer for display
+citations: list[str] # "- Title → URL"
+```
+
+Nodes
+
+* `route` → decides where to go (using guardrails, see below).
+* `emergency` / `oos` / `member` → canned safe messages for those cases.
+* `retrieve` → calls `HybridRetriever.retrieve(question, top_k=4)`.
+* `generate` → builds prompt from contexts, calls LLM, assembles citations.
+
+Control flow
+
+* Enter at `route`
+
+  * If **emergency** (regex keywords like “Notfall, Atemnot”, etc.) → `emergency` → END.
+  * If **out-of-scope** (coding, weather, football…) → `oos` → END.
+  * If **member-specific** (change bank details, claim status…) → `member` → END.
+  * Else → `retrieve`.
+
+* `retrieve`
+
+  * Calls the hybrid retriever.
+  * If **0 docs**, short fallback answer (“Kein Beleg in den Quellen”) → END.
+  * Else → `generate`.
+
+* `generate`
+
+  * Builds the **LLM prompt** from system rules + the top-k contexts (chunk texts).
+  * Calls your **local model** (Ollama or whichever backend you wired).
+  * Cleans any model-invented “Quellen” section.
+  * Builds **citations** from the retrieved chunks’ metadata (dedup by URL).
+  * Returns the final answer + citations → END.
+
+> LangGraph requires each node to return **a dict of state updates**. Branching is handled by `add_conditional_edges`.
+
+---
+
+# 4) Prompts and guardrails (how answers are shaped & when we stop early)
+
+## 4.1 `app/rag/prompts.py`
+
+* **`SYSTEM_DE`**: your German system instructions.
+
+  * “Answer only based on context”
+  * No diagnoses/individual therapy
+  * Short, clear style (3–6 sentences; bullets ok)
+  * Point members to “Meine AOK” or hotline for personal matters
+* **`build_prompt(question, contexts)`**:
+
+  * De-dupes + truncates contexts.
+  * Concatenates a **[SYSTEM]** block + **[USER]** block that embeds the contexts and the question.
+  * Returns a single string for plain-text LLMs (Ollama style).
+
+## 4.2 `app/rag/guardrails.py`
+
+* Regex heuristics:
+
+  * `is_emergency()` → send 112/Clarimedis message.
+  * `is_out_of_scope()` → ask for AOK/GKV-relevant topics.
+  * `is_member_specific()` → route to Meine AOK / hotline.
+  * `needs_fallback_from_retrieval(n)` → if no docs, safe fallback line.
+* Message constants used by dedicated nodes in `graph.py`.
+
+---
+
+# 5) The UI (how you interact)
+
+`app/ui/streamlit_app.py`:
+
+* **Sidebar**
+
+  * “Ollama-Modell” (informational for now)
+  * “Top-K Dokumente” slider (UI element; we left the graph hard-coded at 4—see “Wiring Top-K” below if you want this to control retrieval).
+
+* **FAQ suggestions**
+
+  * Reads `data/faq_de.yaml`.
+  * Renders buttons for quick-ask.
+
+* **Ask flow**
+
+  * On button click:
+
+    ```python
+    state = RAGState(question=q)
+    result = graph.invoke(state)
+    ```
+  * Displays `result["answer"]` and an accordion of `result["citations"]`.
+
+> The UI never fetches websites. It just calls the LangGraph pipeline, which uses the **indexes built at ingest time**.
+
+---
+
+# 6) How the artifacts tie together
+
+* **`data/seed_sources.yaml` + `data/faq_de.yaml`**
+  ↓ (ingest.py)
+  **`data/processed/chunks.jsonl`** (sparse corpus for BM25)
+  **`data/processed/chroma/`** (dense vectors for semantic search)
+
+* **At query time** (Streamlit or CLI script)
+  **`retriever.py`** opens:
+
+  * `chunks.jsonl` → BM25Retriever
+  * `chroma/` → Chroma (Embeddings)
+    → merges + reranks results → returns **top-k contexts**.
+
+* **`graph.py`** builds prompt from **those contexts**, calls the LLM, and appends **citations** derived from the contexts’ metadata → **UI** renders it.
+
+> Think of ingest as **“compile the knowledge”**, and runtime as **“query the compiled knowledge”**.
+
+---
+
+# 7) (Optional) Wiring the Top-K slider for real
+
+Right now, the slider is visual only. If you want it to actually control retrieval:
+
+**A) Add a field to state**
+
+```python
+# graph.py
+class RAGState(BaseModel):
+    question: str
+    top_k: int = 4
+    docs: list = []
+    answer: str = ""
+    citations: list[str] = []
+```
+
+**B) Use it in `retrieve`**
+
+```python
+def retrieve(state: RAGState):
+    hits = retriever.retrieve(state.question, top_k=state.top_k)
+    ...
+```
+
+**C) Pass from Streamlit**
+
+```python
+# streamlit_app.py
+state = RAGState(question=q, top_k=top_k)  # use slider value
+result = graph.invoke(state)
+```
+
+---
+
+# 8) LLM backend (how the answer is generated)
+
+* You started with **Ollama** (`llama3.2:3b`).
+* We also discussed drop-in alternatives:
+
+  * **Transformers** (HF model/pipeline) if you convert/checkpoints to HF.
+  * **llama.cpp / GGUF** via `llama-cpp-python` (very CPU-friendly).
+* Your **prompts** + **contexts** stay the same; only the `llm = ...` line changes.
+
+---
+
+# 9) Scripts for quick checks
+
+* `scripts/smoke_retrieval.py` → probes the retriever (no LLM).
+* `scripts/smoke_hybrid.py` → probes the hybrid end-to-end retrieval.
+* `scripts/smoke_graph.py` → runs the full graph (guardrails + generate + citations).
+
+These are sanity checks you ran along the way.
+
+---
+
+# 10) Typical lifecycle you’ll run
+
+1. Curate sources
+   Edit `data/seed_sources.yaml`, `data/faq_de.yaml`, drop PDFs into `data/docs/`.
+
+2. Build indexes
+
+   ```powershell
+   conda activate env_aok_chatbot
+   set PYTHONPATH=%cd%
+   python -m ingest.ingest --manifest data/seed_sources.yaml --faq data/faq_de.yaml
+   ```
+
+3. Start local model (if using Ollama)
+
+   ```powershell
+   ollama pull llama3.2:3b
+   # (or your alternative backend)
+   ```
+
+4. Run the UI
+
+   ```powershell
+   python -m streamlit run app/ui/streamlit_app.py
+   ```
+
+5. Demo
+   Ask questions, click FAQ buttons, show citations, explain Top-K.
+
+6. Update content?
+   Re-run ingest to refresh `processed/` indices.
+
+---
+
+## TL;DR (one paragraph)
+
+* Ingest compiles your knowledge: it fetches/cleans/chunks content from `seed_sources.yaml`, `faq_de.yaml`, and `docs/`, then writes **plain chunks** for BM25 (`processed/chunks.jsonl`) and vector embeddings for semantic search (`processed/chroma/`).
+* At query time, the HybridRetriever loads both indices, searches BM25 + dense, merges and reranks passages, and returns the best top-k contexts.
+* LangGraph (graph.py) runs guardrails → retrieval → generation: it builds a grounded prompt from those contexts, calls your local LLM, strips any model-made sources, and appends citations from the retrieved passages’ metadata.
+* Streamlit is just the face: it takes your question, invokes the graph, and renders the answer + citations—all offline against the indices you built earlier.

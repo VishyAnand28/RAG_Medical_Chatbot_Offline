@@ -1,0 +1,41 @@
+### requirements.txt
+```text
+# Core RAG stack
+langchain>=0.2.0
+langchain-community>=0.2.0
+langchain-chroma>=0.1.0
+langchain-huggingface>=0.1.0
+langgraph>=0.1.0
+chromadb>=0.5.0
+
+# Local LLM (used in evaluation via LangChain)
+langchain-ollama>=0.1.0
+
+# Embeddings & reranker
+transformers>=4.41.0
+sentence-transformers>=2.2.2
+torch>=2.1.0
+# If you prefer the FlagEmbedding packages, add:
+# FlagEmbedding>=1.2.10
+
+# Retrieval helpers
+rank-bm25>=0.2.2
+
+# Ingestion & parsing
+trafilatura>=1.6.0
+PyMuPDF>=1.23.0
+requests>=2.31.0
+PyYAML>=6.0.1
+
+# UI
+streamlit>=1.30.0
+
+# Evaluation
+ragas>=0.1.8
+datasets>=2.16.0
+pandas>=2.1.0
+
+# Utilities
+tqdm>=4.66.0
+pydantic>=2.7.0
+
